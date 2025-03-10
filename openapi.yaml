@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Packaging API
+  description: API to calculate optimal package distribution
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /calculate:
+    post:
+      summary: Calculate optimal pack distribution
+      description: Given an item count, returns the best combination of packs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: integer
+                  example: 12001
+      responses:
+        "200":
+          description: Successful response with calculated packs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  packs:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    example: {"5000": 2, "2000": 1, "250": 1}
+        "400":
+          description: Invalid request
