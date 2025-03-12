@@ -1,38 +1,68 @@
 package main
 
-import "sort"
+import (
+	"math"
+)
 
-// Request represents a JSON request containing the number of items to order.
-type Request struct {
-	Items int `json:"items"`
+// dpResult holds the total items (sum) and the total number of packs (count).
+type dpResult struct {
+	sum   int
+	count int
 }
 
-// Response represents the JSON response containing the calculated pack distribution.
-type Response struct {
-	Packs map[int]int `json:"packs"`
-}
+// calculatePacks returns how many packs of each size are needed to satisfy
+// an order with minimal overage (sum) and then minimal pack count.
+func calculatePacks(order int) map[int]int {
+	// dp[t] = best way to cover t items (or more) with minimal sum, then minimal count.
+	// chosen[t] = which pack was chosen to improve dp[t].
+	dp := make([]dpResult, order+1)
+	chosen := make([]int, order+1)
 
-// calculatePacks determines the optimal number of packs to fulfill an order.
-// It prioritizes minimizing the number of items sent, then minimizing the number of packs used.
-func calculatePacks(items int) map[int]int {
-	sort.Sort(sort.Reverse(sort.IntSlice(packSizes)))
-	result := make(map[int]int)
+	// Initialize dp[0].
+	dp[0] = dpResult{sum: 0, count: 0}
+	for t := 1; t <= order; t++ {
+		dp[t] = dpResult{sum: math.MaxInt, count: math.MaxInt}
+	}
 
-	remaining := items
+	// Fill dp table.
+	for t := 1; t <= order; t++ {
+		for _, packSize := range packSizes {
+			prevIndex := t - packSize
+			if prevIndex < 0 {
+				// If packSize > t, we just take one pack of that size.
+				candidateSum := packSize
+				candidateCount := 1
 
-	for _, pack := range packSizes {
-		if remaining == 0 {
-			break
-		}
-		count := remaining / pack
-		if count > 0 {
-			result[pack] = count
-			remaining -= count * pack
+				if (candidateSum < dp[t].sum) ||
+					(candidateSum == dp[t].sum && candidateCount < dp[t].count) {
+					dp[t] = dpResult{sum: candidateSum, count: candidateCount}
+					chosen[t] = packSize
+				}
+			} else {
+				// Use dp[prevIndex] + this packSize.
+				prev := dp[prevIndex]
+				candidateSum := prev.sum + packSize
+				candidateCount := prev.count + 1
+
+				if (candidateSum < dp[t].sum) ||
+					(candidateSum == dp[t].sum && candidateCount < dp[t].count) {
+					dp[t] = dpResult{sum: candidateSum, count: candidateCount}
+					chosen[t] = packSize
+				}
+			}
 		}
 	}
 
-	if remaining > 0 {
-		result[packSizes[len(packSizes)-1]]++
+	// Reconstruct which packs were used.
+	result := make(map[int]int)
+	t := order
+	for t > 0 {
+		packUsed := chosen[t]
+		result[packUsed]++
+		if packUsed > t {
+			break
+		}
+		t -= packUsed
 	}
 
 	return result

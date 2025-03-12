@@ -5,6 +5,16 @@ import (
 	"net/http"
 )
 
+// Request represents a JSON request containing the number of items to order.
+type Request struct {
+	Items int `json:"items"`
+}
+
+// Response represents the JSON response containing the calculated pack distribution.
+type Response struct {
+	Packs map[int]int `json:"packs"`
+}
+
 // handler processes API requests for pack calculation.
 // It handles CORS and parses incoming JSON requests.
 func handler(w http.ResponseWriter, r *http.Request) {
